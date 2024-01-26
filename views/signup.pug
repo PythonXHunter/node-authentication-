@@ -1,9 +1,12 @@
+doctype html
 html
   head
     title SignUp
   body
     if message
       h4 #{message}
+      p
+        a(href="/login") Login Please!
     else
       form(action="/signup" method="post")
         input(name="id" type="text" required placeholder="User ID")

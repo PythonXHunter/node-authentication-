@@ -1,13 +1,14 @@
 // const obj = require('../dummy_data');
 const Users = [];
 // const users = obj.Users;
+const bcrypt = require('bcrypt');
 
 userCreateGet = (req, res) => {
-  console.log(Users);
+  // console.log(Users);
   res.render("signup");
 }
 
-userCreatePost = (req, res) => {
+userCreatePost = async (req, res) => {
   if(!req.body.id || !req.body.password){
     return res.status(400).json({ message: "Invalid details" });
   } else {
@@ -20,7 +21,8 @@ userCreatePost = (req, res) => {
       }
     }
     const { id, password } = req.body;
-    const newUser = { id: id, password: password};
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = { id: id, password: hashedPassword};
     Users.push(newUser);
     req.session.user = newUser;
     console.log(req.session);
@@ -33,31 +35,40 @@ userLoginGet = (req, res) => {
   res.render("login");
 }
 
-userLoginPost = (req, res) => {
+userLoginPost = async (req, res) => {
   if(!req.body.id || !req.body.password){
     return res.render("login", {
       message: "Please enter both id and password"
     });
   } else {
-    Users.forEach(user => {
-      if(user.id !== req.body.id && user.password !== req.body.password){
-        req.session.user = user;
-        return res.render('login', {
-          message: "Invalid credentials!"
+    for(let i=0;i<Users.length;i++){
+      let user = Users[i];
+      const isMatch = await bcrypt.compare(req.body.password, user.password);
+      
+      // console.log("user", user);
+      if((user.id !== req.body.id) && (!isMatch)){
+        return res.render("login", {
+          message: "Please Enter the correct Id and Password"
         });
+      } else if(!isMatch){
+        return res.render("login", {
+          message: "Please Enter the correct Password"
+        });
+      } else if(user.id !== req.body.id){
+        return res.render("login", {
+          message: "Please Enter the correct Id"
+        });
+      } else {
+        return res.redirect('/protected_page');
       }
-    });
+    }
   }
-  res.redirect('/protected_page');
 }
 
 userSecurePage = (req, res) => {
   res.render('protected_page', { id: req.session.user.id });
 }
 
-userLoginAgain = (req, res) => {
-  res.render('signup_again');
-}
 
 module.exports = {
   userCreateGet,
@@ -65,5 +76,4 @@ module.exports = {
   userLoginGet,
   userLoginPost,
   userSecurePage,
-  userLoginAgain,
 };
